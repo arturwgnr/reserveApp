@@ -1,11 +1,27 @@
 import {
+  getUsersService,
   registerUserService,
   loginUserService,
   addUserResources,
   listUserResources,
   listUserResourcesById,
   updateResource,
+  addReservation,
+  cancelReservation,
+  listReservation,
+  listReservationActive,
+  listReservationCancelled,
 } from "../services/user.service.js";
+
+export async function getUsersController(req, res) {
+  try {
+    const users = await getUsersService();
+
+    res.status(200).json({ message: "Users List:", users });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
 
 export async function registerUserController(req, res) {
   const { email, password } = req.body;
@@ -55,7 +71,7 @@ export async function addUserResourcesController(req, res) {
   }
 }
 
-export async function listUserResourcesController(req, res) {
+export async function listResourcesController(req, res) {
   let { isActive } = req.query;
 
   if (req.query.isActive === "true") {
@@ -93,6 +109,69 @@ export async function updateResourceController(req, res) {
     const resourceUpdated = await updateResource({ id, name, isActive });
 
     res.status(200).json({ message: "Update:", resourceUpdated });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+//RESERVATION CONTROLLER
+
+export async function listReservationController(req, res) {
+  try {
+    const reservations = await listReservation();
+
+    res.status(200).json({ message: "Reservations:", reservations });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+export async function listReservationActiveController(req, res) {
+  try {
+    const reservations = await listReservationActive();
+
+    res.status(200).json({ message: "Active Reservations:", reservations });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+export async function listReservationCancelledController(req, res) {
+  try {
+    const reservations = await listReservationCancelled();
+
+    res.status(200).json({ message: "Cancelled Reservations:", reservations });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+export async function addReservationController(req, res) {
+  const { userId, resourceId, startTime, endTime } = req.body;
+
+  try {
+    const newReservation = await addReservation({
+      userId,
+      resourceId,
+      startTime,
+      endTime,
+    });
+
+    res
+      .status(201)
+      .json({ message: "Reservation added successfully", newReservation });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+export async function cancelReservationController(req, res) {
+  const { id } = req.params;
+
+  try {
+    const updatedReservation = await cancelReservation({ id });
+
+    res
+      .status(200)
+      .json({ message: "Reservation cancelled", updatedReservation });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

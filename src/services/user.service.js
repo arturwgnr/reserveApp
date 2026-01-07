@@ -3,6 +3,18 @@ import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
 
+//USER SERVICE
+
+export async function getUsersService() {
+  const users = await prisma.user.findMany();
+
+  if (users.length === 0) {
+    throw new Error("NO_USERS_AVAILABLE");
+  }
+
+  return users;
+}
+
 export async function registerUserService({ email, password }) {
   const userExists = await prisma.user.findUnique({
     where: { email },
@@ -46,6 +58,8 @@ export async function loginUserService({ email, password }) {
     return existingUser;
   }
 }
+
+//RESOURCE SERVICE
 
 export async function addUserResources({ name, isActive }) {
   const existingResource = await prisma.resource.findUnique({
@@ -98,4 +112,118 @@ export async function updateResource({ id, name, isActive }) {
   });
 
   return resourceUpdated;
+}
+
+//RESERVATION SERVICE
+
+export async function listReservation() {
+  const reservations = await prisma.reservation.findMany();
+
+  if (!reservations) {
+    throw new Error("RESERVATIONS_NOT_FOUND");
+  }
+
+  return reservations;
+}
+
+export async function listReservationActive() {
+  const reservations = await prisma.reservation.findMany({
+    where: { status: "ACTIVE" },
+  });
+
+  if (!reservations) {
+    throw new Error("RESERVATIONS_NOT_FOUND");
+  }
+
+  return reservations;
+}
+
+export async function listReservationCancelled() {
+  const reservations = await prisma.reservation.findMany({
+    where: { status: "CANCELLED" },
+  });
+
+  if (!reservations) {
+    throw new Error("RESERVATIONS_NOT_FOUND");
+  }
+
+  return reservations;
+}
+
+export async function addReservation({
+  userId,
+  resourceId,
+  startTime,
+  endTime,
+}) {
+  const status = "ACTIVE";
+
+  const start = new Date(startTime);
+  const end = new Date(endTime);
+
+  const resource = await prisma.resource.findUnique({
+    where: { id: resourceId },
+  });
+
+  if (!resource) {
+    throw new Error("RESOURCE_NOT_FOUND");
+  }
+
+  if (resource.isActive === false) {
+    throw new Error("RESOURCE_NOT_AVAILABLE");
+  }
+
+  if (start >= end) {
+    throw new Error("INCORRECT_TIME");
+  }
+
+  const userCheck = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!userCheck) {
+    throw new Error("USER_NOT_FOUND");
+  }
+
+  //checks
+
+  const conflict = await prisma.reservation.findFirst({
+    where: {
+      resourceId,
+      status: "ACTIVE",
+      AND: [
+        {
+          startTime: { lt: end },
+        },
+        { endTime: { gt: start } },
+      ],
+    },
+  });
+
+  if (conflict) {
+    throw new Error("RESERVATION_TIME_CONFLICT");
+  }
+
+  const newReservation = await prisma.reservation.create({
+    data: { userId, resourceId, startTime: start, endTime: end, status },
+  });
+
+  return newReservation;
+}
+
+export async function cancelReservation({ id }) {
+  const reservation = await prisma.reservation.findUnique({
+    where: { id },
+  });
+
+  if (!reservation) {
+    throw new Error("RESERVATION_NOT_FOUND");
+  }
+
+  const updatedReservation = await prisma.reservation.update({
+    where: { id },
+    data: { status: "CANCELLED" },
+  });
+
+  return updatedReservation;
 }
