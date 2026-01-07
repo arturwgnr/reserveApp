@@ -7,6 +7,10 @@ import {
   listUserResourcesById,
   updateResource,
   addReservation,
+  cancelReservation,
+  listReservation,
+  listReservationActive,
+  listReservationCancelled,
 } from "../services/user.service.js";
 
 export async function getUsersController(req, res) {
@@ -67,7 +71,7 @@ export async function addUserResourcesController(req, res) {
   }
 }
 
-export async function listUserResourcesController(req, res) {
+export async function listResourcesController(req, res) {
   let { isActive } = req.query;
 
   if (req.query.isActive === "true") {
@@ -110,6 +114,36 @@ export async function updateResourceController(req, res) {
   }
 }
 
+//RESERVATION CONTROLLER
+
+export async function listReservationController(req, res) {
+  try {
+    const reservations = await listReservation();
+
+    res.status(200).json({ message: "Reservations:", reservations });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+export async function listReservationActiveController(req, res) {
+  try {
+    const reservations = await listReservationActive();
+
+    res.status(200).json({ message: "Active Reservations:", reservations });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+export async function listReservationCancelledController(req, res) {
+  try {
+    const reservations = await listReservationCancelled();
+
+    res.status(200).json({ message: "Cancelled Reservations:", reservations });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
 export async function addReservationController(req, res) {
   const { userId, resourceId, startTime, endTime } = req.body;
 
@@ -124,6 +158,20 @@ export async function addReservationController(req, res) {
     res
       .status(201)
       .json({ message: "Reservation added successfully", newReservation });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+export async function cancelReservationController(req, res) {
+  const { id } = req.params;
+
+  try {
+    const updatedReservation = await cancelReservation({ id });
+
+    res
+      .status(200)
+      .json({ message: "Reservation cancelled", updatedReservation });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -3,6 +3,8 @@ import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
 
+//USER SERVICE
+
 export async function getUsersService() {
   const users = await prisma.user.findMany();
 
@@ -57,6 +59,8 @@ export async function loginUserService({ email, password }) {
   }
 }
 
+//RESOURCE SERVICE
+
 export async function addUserResources({ name, isActive }) {
   const existingResource = await prisma.resource.findUnique({
     where: { name },
@@ -110,6 +114,42 @@ export async function updateResource({ id, name, isActive }) {
   return resourceUpdated;
 }
 
+//RESERVATION SERVICE
+
+export async function listReservation() {
+  const reservations = await prisma.reservation.findMany();
+
+  if (!reservations) {
+    throw new Error("RESERVATIONS_NOT_FOUND");
+  }
+
+  return reservations;
+}
+
+export async function listReservationActive() {
+  const reservations = await prisma.reservation.findMany({
+    where: { status: "ACTIVE" },
+  });
+
+  if (!reservations) {
+    throw new Error("RESERVATIONS_NOT_FOUND");
+  }
+
+  return reservations;
+}
+
+export async function listReservationCancelled() {
+  const reservations = await prisma.reservation.findMany({
+    where: { status: "CANCELLED" },
+  });
+
+  if (!reservations) {
+    throw new Error("RESERVATIONS_NOT_FOUND");
+  }
+
+  return reservations;
+}
+
 export async function addReservation({
   userId,
   resourceId,
@@ -147,14 +187,20 @@ export async function addReservation({
 
   //checks
 
-  const existingReservation = await prisma.reservation.findUnique({
-    where: { id },
+  const conflict = await prisma.reservation.findFirst({
+    where: {
+      resourceId,
+      status: "ACTIVE",
+      AND: [
+        {
+          startTime: { lt: end },
+        },
+        { endTime: { gt: start } },
+      ],
+    },
   });
 
-  if (
-    existingReservation.startTime < end &&
-    existingReservation.endTime > start
-  ) {
+  if (conflict) {
     throw new Error("RESERVATION_TIME_CONFLICT");
   }
 
@@ -163,4 +209,21 @@ export async function addReservation({
   });
 
   return newReservation;
+}
+
+export async function cancelReservation({ id }) {
+  const reservation = await prisma.reservation.findUnique({
+    where: { id },
+  });
+
+  if (!reservation) {
+    throw new Error("RESERVATION_NOT_FOUND");
+  }
+
+  const updatedReservation = await prisma.reservation.update({
+    where: { id },
+    data: { status: "CANCELLED" },
+  });
+
+  return updatedReservation;
 }

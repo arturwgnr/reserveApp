@@ -37,7 +37,7 @@ model Reservation {
   startTime  DateTime
   endTime    DateTime
 
-  status     String   // "ACTIVE" | "CANCELLED" | "COMPLETED"
+  status     String    "ACTIVE" | "CANCELLED" | "COMPLETED"
 
   userId     String
   resourceId String
