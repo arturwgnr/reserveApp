@@ -1,0 +1,49 @@
+
+
+generator client {
+  provider = "prisma-client-js"
+  
+}
+
+datasource db {
+  provider = "postgresql"
+    url      = env("DATABASE_URL")
+  
+
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String
+  role         String        // "USER" | "ADMIN"
+  createdAt    DateTime      @default(now())
+
+  reservations Reservation[]
+}
+
+model Resource {
+  id          String        @id @default(uuid())
+  name        String        @unique
+  isActive    Boolean       @default(true)
+  createdAt  DateTime      @default(now())
+
+  reservations Reservation[]
+}
+
+model Reservation {
+  id         String   @id @default(uuid())
+
+  startTime  DateTime
+  endTime    DateTime
+
+  status     String   // "ACTIVE" | "CANCELLED" | "COMPLETED"
+
+  userId     String
+  resourceId String
+
+  user       User     @relation(fields: [userId], references: [id])
+  resource   Resource @relation(fields: [resourceId], references: [id])
+
+  createdAt  DateTime @default(now())
+}
