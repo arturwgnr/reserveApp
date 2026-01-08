@@ -13,6 +13,8 @@ import {
   listReservationCancelled,
 } from "../services/user.service.js";
 
+import jwt from "jsonwebtoken";
+
 export async function getUsersController(req, res) {
   try {
     const users = await getUsersService();
@@ -47,9 +49,12 @@ export async function loginUserController(req, res) {
   }
 
   try {
-    const login = await loginUserService({ email, password });
+    const user = await loginUserService({ email, password });
+    const token = await jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
 
-    res.status(200).json({ message: "Login successfull", login });
+    res.status(200).json({ message: email, token });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -145,9 +150,15 @@ export async function listReservationCancelledController(req, res) {
 }
 
 export async function addReservationController(req, res) {
-  const { userId, resourceId, startTime, endTime } = req.body;
+  const { resourceId, startTime, endTime } = req.body;
 
   try {
+    const authHeader = req.headers.authorization;
+    const [, token] = authHeader.split(" ");
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
+
     const newReservation = await addReservation({
       userId,
       resourceId,
@@ -155,9 +166,7 @@ export async function addReservationController(req, res) {
       endTime,
     });
 
-    res
-      .status(201)
-      .json({ message: "Reservation added successfully", newReservation });
+    res.status(201).json(newReservation);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
